@@ -98,6 +98,20 @@ public class VariableFacadeHandlerRegistry implements IVariableFacadeHandlerRegi
         return handlers.get(type.toString());
     }
 
+    @Nullable
+    @Override
+    public IVariableFacadeHandler getHandler(ItemStack itemStack) {
+        if(itemStack.isEmpty() || !itemStack.has(RegistryEntries.DATACOMPONENT_VARIABLE_FACADE)) {
+            return null;
+        }
+        CompoundTag tagCompound = itemStack.get(RegistryEntries.DATACOMPONENT_VARIABLE_FACADE);
+        if(!tagCompound.contains("_type", Tag.TAG_STRING)) {
+            return null;
+        }
+        String type = tagCompound.getString("_type");
+        return getHandler(ResourceLocation.parse(type));
+    }
+
     @Override
     public Collection<String> getHandlerNames() {
         return handlers.keySet();

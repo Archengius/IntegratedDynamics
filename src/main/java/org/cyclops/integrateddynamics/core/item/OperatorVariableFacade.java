@@ -1,5 +1,6 @@
 package org.cyclops.integrateddynamics.core.item;
 
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -178,6 +179,24 @@ public class OperatorVariableFacade extends VariableFacadeBase implements IOpera
         IOperator operator = getOperator();
         if(operator == null) return null;
         return operator.getOutputType();
+    }
+
+    @Override
+    public void replaceVariableReferences(Int2IntMap variableIdLookup) {
+        boolean invalidateCachedData = false;
+        for (int variableIdIndex = 0; variableIdIndex < variableIds.length; variableIdIndex++) {
+            int currentVariableId = variableIds[variableIdIndex];
+            int newVariableId = variableIdLookup.getOrDefault(currentVariableId, currentVariableId);
+
+            if (newVariableId != currentVariableId) {
+                variableIds[variableIdIndex] = newVariableId;
+                invalidateCachedData = true;
+            }
+        }
+        if (invalidateCachedData) {
+            this.expression = null;
+            this.lastNetworkHash = -1;
+        }
     }
 
     @OnlyIn(Dist.CLIENT)

@@ -1,5 +1,6 @@
 package org.cyclops.integrateddynamics.core.item;
 
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.chat.Component;
@@ -36,6 +37,10 @@ public abstract class VariableFacadeBase implements IVariableFacade {
     @Override
     public String getLabel() {
         return LabelsWorldStorage.getInstance(IntegratedDynamics._instance).getLabel(getId());
+    }
+
+    @Override
+    public void replaceVariableReferences(Int2IntMap variableIdLookup) {
     }
 
     protected String getReferenceDisplay(int variableId) {

@@ -124,6 +124,7 @@ public class Configs {
         configHandler.addConfigurable(new ItemLogicDirectorConfig());
         configHandler.addConfigurable(new ItemProtoChorusConfig());
         configHandler.addConfigurable(new ItemEnhancementOffsetConfig());
+        configHandler.addConfigurable(new ItemSettingsCopierConfig());
 
         // World features
         configHandler.addConfigurable(new FoliagePlacerMenrilConfig());
@@ -205,6 +206,7 @@ public class Configs {
         configHandler.addConfigurable(new DataComponentWrenchTargetBlockPosConfig());
         configHandler.addConfigurable(new DataComponentWrenchTargetDirectionConfig());
         configHandler.addConfigurable(new DataComponentWrenchModeConfig());
+        configHandler.addConfigurable(new DataComponentCopiedSettings());
     }
 
 }

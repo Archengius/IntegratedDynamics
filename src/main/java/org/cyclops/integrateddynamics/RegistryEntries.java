@@ -24,6 +24,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.SimpleFluidContent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import org.apache.commons.lang3.tuple.Pair;
+import org.cyclops.integrateddynamics.api.block.IBlockSettings;
 import org.cyclops.integrateddynamics.block.*;
 import org.cyclops.integrateddynamics.blockentity.*;
 import org.cyclops.integrateddynamics.core.blockentity.BlockEntityMultipartTicking;
@@ -64,6 +65,7 @@ public class RegistryEntries {
     public static final DeferredHolder<Item, Item> ITEM_MENRIL_TORCH = DeferredHolder.create(Registries.ITEM, ResourceLocation.parse("integrateddynamics:menril_torch"));
     public static final DeferredHolder<Item, Item> ITEM_MENRIL_TORCH_STONE = DeferredHolder.create(Registries.ITEM, ResourceLocation.parse("integrateddynamics:menril_torch_stone"));
     public static final DeferredHolder<Item, ItemEnhancement> ITEM_ENHANCEMENT_OFFSET = DeferredHolder.create(Registries.ITEM, ResourceLocation.parse("integrateddynamics:enhancement_offset"));
+    public static final DeferredHolder<Item, Item> ITEM_SETTINGS_COPIER = DeferredHolder.create(Registries.ITEM, ResourceLocation.parse("integrateddynamics:settings_copier"));
 
     public static final DeferredHolder<Block, BlockCable> BLOCK_CABLE = DeferredHolder.create(Registries.BLOCK, ResourceLocation.parse("integrateddynamics:cable"));
     public static final DeferredHolder<Block, Block> BLOCK_COAL_GENERATOR = DeferredHolder.create(Registries.BLOCK, ResourceLocation.parse("integrateddynamics:coal_generator"));
@@ -170,6 +172,7 @@ public class RegistryEntries {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<BlockPos>> DATACOMPONENT_WRENCH_TARGET_BLOCKPOS = DeferredHolder.create(Registries.DATA_COMPONENT_TYPE, ResourceLocation.parse("integrateddynamics:wrench_target_blockpos"));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Direction>> DATACOMPONENT_WRENCH_TARGET_DIRECTION = DeferredHolder.create(Registries.DATA_COMPONENT_TYPE, ResourceLocation.parse("integrateddynamics:wrench_target_direction"));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<ItemWrench.Mode>> DATACOMPONENT_WRENCH_MODE = DeferredHolder.create(Registries.DATA_COMPONENT_TYPE, ResourceLocation.parse("integrateddynamics:wrench_mode"));
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<IBlockSettings>> DATACOMPONENT_COPIED_SETTINGS = DeferredHolder.create(Registries.DATA_COMPONENT_TYPE, ResourceLocation.parse("integrateddynamics:copied_settings"));
 
 
 }

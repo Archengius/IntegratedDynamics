@@ -25,9 +25,11 @@ import org.cyclops.integrateddynamics.api.item.IValueTypeVariableFacade;
 import org.cyclops.integrateddynamics.api.item.IVariableFacadeHandlerRegistry;
 import org.cyclops.integrateddynamics.api.network.INetworkElement;
 import org.cyclops.integrateddynamics.api.network.INetworkElementProvider;
+import org.cyclops.integrateddynamics.blocksettings.BlockSettingsMaterializer;
 import org.cyclops.integrateddynamics.capability.networkelementprovider.NetworkElementProviderSingleton;
 import org.cyclops.integrateddynamics.core.blockentity.BlockEntityActiveVariableBase;
 import org.cyclops.integrateddynamics.core.blockentity.BlockEntityCableConnectableInventory;
+import org.cyclops.integrateddynamics.core.blocksettings.BlockSettingsActiveVariableBase;
 import org.cyclops.integrateddynamics.core.evaluate.variable.ValueTypes;
 import org.cyclops.integrateddynamics.core.helper.NetworkHelpers;
 import org.cyclops.integrateddynamics.core.item.ValueTypeVariableFacade;
@@ -89,6 +91,10 @@ public class BlockEntityMaterializer extends BlockEntityActiveVariableBase<Mater
                     Capabilities.NetworkElementProvider.BLOCK,
                     (blockEntity, direction) -> blockEntity.getNetworkElementProvider()
             );
+            add(
+                    Capabilities.SettingsCopyable.BLOCK,
+                    (blockEntity, context) -> blockEntity.getSettingsCopyable()
+            );
         }
     }
 
@@ -115,6 +121,11 @@ public class BlockEntityMaterializer extends BlockEntityActiveVariableBase<Mater
     @Override
     public int getSlotRead() {
         return SLOT_READ;
+    }
+
+    @Override
+    protected BlockSettingsActiveVariableBase copySettings() {
+        return new BlockSettingsMaterializer(getInventory().getItem(getSlotRead()).copy());
     }
 
     protected boolean canWrite() {

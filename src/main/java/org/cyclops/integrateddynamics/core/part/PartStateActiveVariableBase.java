@@ -4,27 +4,40 @@ import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.common.NeoForge;
 import org.cyclops.cyclopscore.inventory.SimpleInventory;
 import org.cyclops.cyclopscore.persist.nbt.NBTClassType;
 import org.cyclops.integrateddynamics.Capabilities;
 import org.cyclops.integrateddynamics.IntegratedDynamics;
+import org.cyclops.integrateddynamics.RegistryEntries;
 import org.cyclops.integrateddynamics.api.block.IVariableContainer;
+import org.cyclops.integrateddynamics.api.evaluate.EvaluationException;
 import org.cyclops.integrateddynamics.api.evaluate.IValueInterface;
 import org.cyclops.integrateddynamics.api.evaluate.variable.IValue;
 import org.cyclops.integrateddynamics.api.evaluate.variable.IVariable;
 import org.cyclops.integrateddynamics.api.evaluate.variable.ValueDeseralizationContext;
 import org.cyclops.integrateddynamics.api.item.IVariableFacade;
+import org.cyclops.integrateddynamics.api.item.IVariableFacadeHandlerRegistry;
 import org.cyclops.integrateddynamics.api.network.INetwork;
 import org.cyclops.integrateddynamics.api.network.IPartNetwork;
 import org.cyclops.integrateddynamics.api.part.IPartType;
 import org.cyclops.integrateddynamics.api.part.PartCapability;
 import org.cyclops.integrateddynamics.api.part.PartPos;
 import org.cyclops.integrateddynamics.api.part.PartTarget;
+import org.cyclops.integrateddynamics.blocksettings.ActiveVariableSettings;
+import org.cyclops.integrateddynamics.blocksettings.BlockSettingsActiveVariablePart;
+import org.cyclops.integrateddynamics.blocksettings.BlockSettingsPart;
 import org.cyclops.integrateddynamics.capability.variablecontainer.VariableContainerDefault;
 import org.cyclops.integrateddynamics.core.helper.NetworkHelpers;
+import org.cyclops.integrateddynamics.core.network.event.VariableContentsUpdatedEvent;
+import org.cyclops.integrateddynamics.core.part.event.PartVariableDrivenVariableContentsUpdatedEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -163,6 +176,86 @@ public abstract class PartStateActiveVariableBase<P extends IPartType> extends P
         //noinspection unchecked
         this.globalErrorMessages = NBTClassType.readNbt(List.class, "globalErrorMessages", tag, valueDeseralizationContext.holderLookupProvider());
         inventory.readFromNBT(valueDeseralizationContext.holderLookupProvider(), tag, "inventory");
+    }
+
+    protected ActiveVariableSettings copyActiveVariableSettings() {
+        for (int i = 0; i < getInventory().getContainerSize(); i++) {
+            ItemStack stackInSlot = getInventory().getItem(i);
+            if (!stackInSlot.isEmpty()) {
+                return new ActiveVariableSettings(i, stackInSlot.copy());
+            }
+        }
+        return new ActiveVariableSettings(0, ItemStack.EMPTY);
+    }
+
+    @Override
+    protected boolean canCopyPasteSettings(P partType, PartTarget partTarget) {
+        return true;
+    }
+
+    @Override
+    protected BlockSettingsPart copySettings(P partType, PartTarget partTarget) {
+        return new BlockSettingsActiveVariablePart(partType, copyBasicSettings(partTarget), copyActiveVariableSettings());
+    }
+
+    @Override
+    protected Optional<Component> canPasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
+        Optional<Component> superErrorMessage = super.canPasteSettings(partType, partSettings, partTarget, player);
+        if (superErrorMessage.isPresent()) {
+            return superErrorMessage;
+        }
+
+        if (partSettings instanceof BlockSettingsActiveVariablePart activeVariablePart) {
+            if (player != null && !player.hasInfiniteMaterials() && !activeVariablePart.getActiveVariableSettings().activeVariable().isEmpty()) {
+                int variablesNeeded = 1;
+                int variablesAvailable = player.getInventory().countItem(RegistryEntries.ITEM_VARIABLE.get());
+                if (variablesAvailable < variablesNeeded) {
+                    return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.no_variable_cards"));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    protected void pasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
+        super.pasteSettings(partType, partSettings, partTarget, player);
+
+        if (partSettings instanceof BlockSettingsActiveVariablePart activeVariablePart) {
+            if (player != null && !player.hasInfiniteMaterials() && !activeVariablePart.getActiveVariableSettings().activeVariable().isEmpty()) {
+                int variablesNeeded = 1;
+                ContainerHelper.clearOrCountMatchingItems(player.getInventory(), itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get()), variablesNeeded, false);
+            }
+
+            for (int i = 0; i < getInventory().getContainerSize(); i++) {
+                ItemStack stackInSlot = getInventory().getItem(i).copy();
+                if (player != null && !stackInSlot.isEmpty() && !player.addItem(stackInSlot)) {
+                    player.drop(stackInSlot, false);
+                }
+            }
+            getInventory().clearContent();
+
+            if (!activeVariablePart.getActiveVariableSettings().activeVariable().isEmpty()) {
+                IVariableFacadeHandlerRegistry facadeHandlerRegistry = IntegratedDynamics._instance.getRegistryManager().getRegistry(IVariableFacadeHandlerRegistry.class);
+                ItemStack copiedItemStack = facadeHandlerRegistry.copy(true, activeVariablePart.getActiveVariableSettings().activeVariable());
+                getInventory().setItem(activeVariablePart.getActiveVariableSettings().variableSlot(), copiedItemStack);
+            }
+
+            onVariableContentsUpdated(partType, partTarget);
+            Optional<INetwork> optionalNetwork = NetworkHelpers.getNetwork(partTarget.getCenter());
+            if (!getInventory().isEmpty()) {
+                NetworkHelpers.getPartNetwork(optionalNetwork).ifPresent(partNetwork -> {
+                    try {
+                        INetwork network = optionalNetwork.orElse(null);
+                        IVariable variable = getVariable(network, partNetwork, ValueDeseralizationContext.of(partTarget.getCenter().getPos().getLevel(true)));
+                        NeoForge.EVENT_BUS.post(new PartVariableDrivenVariableContentsUpdatedEvent<>(network, partNetwork, partTarget,
+                                partType, this, player, variable, variable != null ? variable.getValue() : null));
+                    } catch (EvaluationException e) {
+                    }
+                });
+            }
+            optionalNetwork.ifPresent(network -> network.getEventBus().post(new VariableContentsUpdatedEvent(network)));
+        }
     }
 
     @Override

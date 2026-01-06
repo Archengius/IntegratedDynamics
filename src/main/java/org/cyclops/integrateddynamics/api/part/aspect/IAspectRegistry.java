@@ -1,5 +1,6 @@
 package org.cyclops.integrateddynamics.api.part.aspect;
 
+import com.mojang.serialization.Codec;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -102,4 +103,6 @@ public interface IAspectRegistry extends IRegistry, IVariableFacadeHandler<IAspe
     @OnlyIn(Dist.CLIENT)
     public Collection<ResourceLocation> getAspectModels();
 
+    /** Returns the codec that can be used to persist the aspect type objects */
+    public Codec<IAspect> codec();
 }

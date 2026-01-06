@@ -51,6 +51,15 @@ public interface IVariableFacadeHandlerRegistry extends IRegistry {
     public IVariableFacadeHandler getHandler(ResourceLocation type);
 
     /**
+     * Finds a variable facade handler capable of writing instances of the facade type currently stored on an item
+     *
+     * @param itemStack The item containing the information that can be read as a facade
+     * @return variable facade handler for the facade stored in the given item, or null if item does not have a valid facade stored in it
+     */
+    @Nullable
+    public IVariableFacadeHandler getHandler(ItemStack itemStack);
+
+    /**
      * @return All registered handler names.
      */
     public Collection<String> getHandlerNames();

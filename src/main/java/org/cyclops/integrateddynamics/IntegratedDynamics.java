@@ -27,6 +27,7 @@ import org.cyclops.cyclopscore.init.ModBaseVersionable;
 import org.cyclops.cyclopscore.persist.world.GlobalCounters;
 import org.cyclops.cyclopscore.proxy.IClientProxy;
 import org.cyclops.cyclopscore.proxy.ICommonProxy;
+import org.cyclops.integrateddynamics.api.block.IBlockSettingsTypeRegistry;
 import org.cyclops.integrateddynamics.api.client.model.IVariableModelProviderRegistry;
 import org.cyclops.integrateddynamics.api.client.render.part.IPartOverlayRendererRegistry;
 import org.cyclops.integrateddynamics.api.client.render.valuetype.IValueTypeWorldRendererRegistry;
@@ -41,6 +42,7 @@ import org.cyclops.integrateddynamics.api.logicprogrammer.ILogicProgrammerElemen
 import org.cyclops.integrateddynamics.api.network.INetworkCraftingHandlerRegistry;
 import org.cyclops.integrateddynamics.api.part.IPartTypeRegistry;
 import org.cyclops.integrateddynamics.api.part.aspect.IAspectRegistry;
+import org.cyclops.integrateddynamics.blocksettings.BlockSettingsTypes;
 import org.cyclops.integrateddynamics.capability.ingredient.IngredientComponentCapabilities;
 import org.cyclops.integrateddynamics.capability.network.NetworkCapabilityConstructors;
 import org.cyclops.integrateddynamics.client.render.part.PartOverlayRendererRegistry;
@@ -52,6 +54,7 @@ import org.cyclops.integrateddynamics.command.CommandNetworkDiagnostics;
 import org.cyclops.integrateddynamics.command.CommandTest;
 import org.cyclops.integrateddynamics.core.NoteBlockEventReceiver;
 import org.cyclops.integrateddynamics.core.TickHandler;
+import org.cyclops.integrateddynamics.core.block.BlockSettingsTypeRegistry;
 import org.cyclops.integrateddynamics.core.client.model.VariableModelProviderRegistry;
 import org.cyclops.integrateddynamics.core.client.model.VariableModelProviders;
 import org.cyclops.integrateddynamics.core.evaluate.DelayVariableFacadeHandler;
@@ -129,6 +132,7 @@ public class IntegratedDynamics extends ModBaseVersionable<IntegratedDynamics> {
         getRegistryManager().addRegistry(IInfoBookRegistry.class, new InfoBookRegistry());
         getRegistryManager().addRegistry(IIngredientComponentHandlerRegistry.class, IngredientComponentHandlerRegistry.getInstance());
         getRegistryManager().addRegistry(INetworkCraftingHandlerRegistry.class, NetworkCraftingHandlerRegistry.getInstance());
+        getRegistryManager().addRegistry(IBlockSettingsTypeRegistry.class, BlockSettingsTypeRegistry.getInstance());
 
         // Preload parts, so we force their blocks and items to be registered
         PartTypes.load();
@@ -169,6 +173,7 @@ public class IntegratedDynamics extends ModBaseVersionable<IntegratedDynamics> {
         PartTypes.register();
         LogicProgrammerElementTypes.load();
         RegistryExportables.load();
+        BlockSettingsTypes.load();
 
         // Register info book
         putGenericReference(ModBase.REFKEY_INFOBOOK_REWARDS, ItemOnTheDynamicsOfIntegrationConfig.bookRewards);

@@ -1,6 +1,8 @@
 package org.cyclops.integrateddynamics.core.part;
 
 import com.google.common.collect.Maps;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import net.minecraft.resources.ResourceLocation;
 import org.cyclops.integrateddynamics.api.part.IPartState;
 import org.cyclops.integrateddynamics.api.part.IPartType;
@@ -8,6 +10,7 @@ import org.cyclops.integrateddynamics.api.part.IPartTypeRegistry;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Registry for {@link IPartType}.
@@ -59,4 +62,10 @@ public final class PartTypeRegistry implements IPartTypeRegistry {
 
     }
 
+    @Override
+    public Codec<IPartType> codec() {
+        return ResourceLocation.CODEC.comapFlatMap(
+                identifier -> Optional.ofNullable(getPartType(identifier)).map(DataResult::success).orElse(DataResult.error(() -> "Unknown part type ID: " + identifier)),
+                IPartType::getUniqueName);
+    }
 }

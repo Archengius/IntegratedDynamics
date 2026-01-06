@@ -6,10 +6,7 @@ import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.ItemCapability;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import org.cyclops.commoncapabilities.api.ingredient.capability.IngredientComponentCapability;
-import org.cyclops.integrateddynamics.api.block.IDynamicLight;
-import org.cyclops.integrateddynamics.api.block.IDynamicRedstone;
-import org.cyclops.integrateddynamics.api.block.IFacadeable;
-import org.cyclops.integrateddynamics.api.block.IVariableContainer;
+import org.cyclops.integrateddynamics.api.block.*;
 import org.cyclops.integrateddynamics.api.block.cable.ICable;
 import org.cyclops.integrateddynamics.api.block.cable.ICableFakeable;
 import org.cyclops.integrateddynamics.api.evaluate.IValueInterface;
@@ -44,6 +41,11 @@ public class Capabilities {
 
     public static final class DynamicRedstone {
         public static final BlockCapability<IDynamicRedstone, Direction> BLOCK = BlockCapability.createSided(ResourceLocation.fromNamespaceAndPath(Reference.MOD_ID, "dynamic_redstone"), IDynamicRedstone.class);
+    }
+
+    public static final class SettingsCopyable {
+        public static final BlockCapability<ISettingsCopyable, Direction> BLOCK = BlockCapability.createSided(ResourceLocation.fromNamespaceAndPath(Reference.MOD_ID, "settings_copyable"), ISettingsCopyable.class);
+        public static final PartCapability<ISettingsCopyable> PART = PartCapability.create(ResourceLocation.fromNamespaceAndPath(Reference.MOD_ID, "settings_copyable"), ISettingsCopyable.class);
     }
 
     public static final class Facadeable {

@@ -68,11 +68,14 @@ public class GameTestHelpersIntegratedDynamics {
         }
     }
 
-    public static ItemStack createVariableForValue(Level level, IValueType valueType, IValue value) {
+    public static ItemStack setVariableToValue(Level level, ItemStack itemStack, IValueType valueType, IValue value) {
         IVariableFacadeHandlerRegistry registry = IntegratedDynamics._instance.getRegistryManager().getRegistry(IVariableFacadeHandlerRegistry.class);
-        ItemStack itemStack = new ItemStack(RegistryEntries.ITEM_VARIABLE);
         return registry.writeVariableFacadeItem(true, itemStack, ValueTypes.REGISTRY,
                 new ValueTypeLPElementBase.ValueTypeVariableFacadeFactory(valueType, value), level, null, RegistryEntries.BLOCK_LOGIC_PROGRAMMER.get().defaultBlockState());
+    }
+
+    public static ItemStack createVariableForValue(Level level, IValueType valueType, IValue value) {
+        return setVariableToValue(level, new ItemStack(RegistryEntries.ITEM_VARIABLE), valueType, value);
     }
 
     public static ItemStack createVariableForOperator(Level level, IOperator operator, int[] variableIds) {

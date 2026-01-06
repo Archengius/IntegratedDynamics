@@ -25,6 +25,8 @@ import org.cyclops.integrateddynamics.api.item.IProxyVariableFacade;
 import org.cyclops.integrateddynamics.api.item.IVariableFacadeHandlerRegistry;
 import org.cyclops.integrateddynamics.api.network.INetworkElement;
 import org.cyclops.integrateddynamics.api.network.INetworkElementProvider;
+import org.cyclops.integrateddynamics.core.blocksettings.BlockSettingsActiveVariableBase;
+import org.cyclops.integrateddynamics.blocksettings.BlockSettingsProxy;
 import org.cyclops.integrateddynamics.capability.networkelementprovider.NetworkElementProviderSingleton;
 import org.cyclops.integrateddynamics.core.blockentity.BlockEntityActiveVariableBase;
 import org.cyclops.integrateddynamics.core.blockentity.BlockEntityCableConnectableInventory;
@@ -166,6 +168,11 @@ public class BlockEntityProxy extends BlockEntityActiveVariableBase<ProxyNetwork
 
     protected int getSlotWriteOut() {
         return SLOT_WRITE_OUT;
+    }
+
+    @Override
+    protected BlockSettingsActiveVariableBase copySettings() {
+        return new BlockSettingsProxy(getInventory().getItem(getSlotRead()).copy());
     }
 
     @Override

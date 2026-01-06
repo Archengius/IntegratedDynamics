@@ -1,5 +1,6 @@
 package org.cyclops.integrateddynamics.core.part;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.core.Direction;
@@ -8,33 +9,42 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.NeoForge;
+import org.cyclops.cyclopscore.inventory.SimpleInventory;
 import org.cyclops.cyclopscore.persist.IDirtyMarkListener;
 import org.cyclops.cyclopscore.persist.nbt.NBTClassType;
+import org.cyclops.integrateddynamics.Capabilities;
 import org.cyclops.integrateddynamics.GeneralConfig;
 import org.cyclops.integrateddynamics.IntegratedDynamics;
+import org.cyclops.integrateddynamics.RegistryEntries;
+import org.cyclops.integrateddynamics.api.block.IBlockSettings;
+import org.cyclops.integrateddynamics.api.block.ISettingsCopyable;
 import org.cyclops.integrateddynamics.api.evaluate.variable.ValueDeseralizationContext;
+import org.cyclops.integrateddynamics.api.item.IVariableFacadeHandlerRegistry;
 import org.cyclops.integrateddynamics.api.network.INetwork;
 import org.cyclops.integrateddynamics.api.network.IPartNetwork;
-import org.cyclops.integrateddynamics.api.part.AttachCapabilitiesEventPart;
-import org.cyclops.integrateddynamics.api.part.IPartState;
-import org.cyclops.integrateddynamics.api.part.IPartType;
-import org.cyclops.integrateddynamics.api.part.PartCapability;
-import org.cyclops.integrateddynamics.api.part.PartTarget;
+import org.cyclops.integrateddynamics.api.part.*;
 import org.cyclops.integrateddynamics.api.part.aspect.IAspect;
 import org.cyclops.integrateddynamics.api.part.aspect.property.IAspectProperties;
+import org.cyclops.integrateddynamics.blocksettings.BasicPartSettings;
+import org.cyclops.integrateddynamics.blocksettings.BlockSettingsPart;
 import org.cyclops.integrateddynamics.core.evaluate.InventoryVariableEvaluator;
+import org.cyclops.integrateddynamics.core.helper.NetworkHelpers;
+import org.cyclops.integrateddynamics.core.network.PartNetworkElement;
+import org.cyclops.integrateddynamics.core.network.event.VariableContentsUpdatedEvent;
 import org.cyclops.integrateddynamics.core.part.aspect.property.AspectProperties;
+import org.cyclops.integrateddynamics.item.ItemEnhancement;
 import org.cyclops.integrateddynamics.part.aspect.Aspects;
 
 import javax.annotation.Nullable;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * A default implementation of the {@link IPartState}.
@@ -309,6 +319,143 @@ public abstract class PartStateBase<P extends IPartType> implements IPartState<P
         this.inventoriesNamed.clear();
     }
 
+    protected final BasicPartSettings copyBasicSettings(PartTarget partTarget) {
+        Level level = partTarget.getCenter().getPos().getLevel(true);
+
+        Map<IAspect, CompoundTag> serializedAspectProperties = new HashMap<>();
+        for (Map.Entry<IAspect, IAspectProperties> pair : aspectProperties.entrySet()) {
+            CompoundTag serializedProperties = pair.getValue().toNBT(ValueDeseralizationContext.of(level));
+            serializedAspectProperties.put(pair.getKey(), serializedProperties);
+        }
+        List<ItemStack> variableSlots = ImmutableList.copyOf(offsetHandler.getOffsetVariablesInventory(this).getItemStacks());
+
+        return new BasicPartSettings(getUpdateInterval(), getPriority(), getChannel(), Optional.ofNullable(getTargetSideOverride()), getMaxOffset(), getTargetOffset(), variableSlots, serializedAspectProperties);
+    }
+
+    /** Returns true if this part supports copy/paste of settings of any kind */
+    protected boolean canCopyPasteSettings(P partType, PartTarget partTarget) {
+        return partType.getContainerProviderSettings(null).isPresent();
+    }
+
+    /** Returns the settings copied from this part as a result of copy/paste of settings */
+    protected BlockSettingsPart copySettings(P partType, PartTarget partTarget) {
+        return new BlockSettingsPart(partType, copyBasicSettings(partTarget));
+    }
+
+    /** Returns true if this part supports the given settings class */
+    protected Optional<Component> canPasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
+        if (partSettings.getPartType() != partType) {
+            return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.invalid_target"));
+        }
+
+        if (player != null && !player.hasInfiniteMaterials() && partType.getContainerProviderSettings(null).isPresent() &&
+            partType.supportsOffsets() && partType.getContainerProviderOffsets(null).isPresent()) {
+
+            int maxOffsetApplicableFromPlayerInventory = 0;
+            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                ItemStack itemStack = player.getInventory().getItem(i);
+                if (itemStack.is(RegistryEntries.ITEM_ENHANCEMENT_OFFSET) && itemStack.getItem() instanceof ItemEnhancement itemEnhancement) {
+                    maxOffsetApplicableFromPlayerInventory += itemEnhancement.getEnhancementValue(itemStack) * itemStack.getCount();
+                }
+            }
+            int offsetNeeded = partSettings.getBasicPartSettings().maxOffset() - getMaxOffset();
+            if (maxOffsetApplicableFromPlayerInventory < offsetNeeded) {
+                return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.no_offset_enhancements"));
+            }
+
+            int variablesNeeded = (int) partSettings.getBasicPartSettings().offsetVariables().stream().filter(itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get())).count();
+            int variablesAvailable = player.getInventory().countItem(RegistryEntries.ITEM_VARIABLE.get());
+            if (variablesAvailable < variablesNeeded) {
+                return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.no_variable_cards"));
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    /** Pastes settings in this part if possible. Returns false if settings were not pasted */
+    protected void pasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
+        if (partType.getContainerProviderSettings(null).isPresent()) {
+            boolean supportsOffsets = partType.supportsOffsets() && partType.getContainerProviderOffsets(null).isPresent();
+
+            if (supportsOffsets) {
+                if (player != null && !player.hasInfiniteMaterials()) {
+                    int offsetNeeded = partSettings.getBasicPartSettings().maxOffset() - getMaxOffset();
+
+                    for (int i = 0; i < player.getInventory().getContainerSize() && offsetNeeded > 0; i++) {
+                        ItemStack itemStack = player.getInventory().getItem(i);
+                        if (itemStack.is(RegistryEntries.ITEM_ENHANCEMENT_OFFSET) && itemStack.getItem() instanceof ItemEnhancement itemEnhancement) {
+                            int enhancementValue = itemEnhancement.getEnhancementValue(itemStack);
+                            if (enhancementValue > 0) {
+                                int upgradesToInstall = Math.min((offsetNeeded + (enhancementValue - 1)) / enhancementValue, itemStack.getCount());
+                                setMaxOffset(getMaxOffset() + enhancementValue * upgradesToInstall);
+                                offsetNeeded -= enhancementValue * upgradesToInstall;
+                                player.getInventory().setItem(i, itemStack.copyWithCount(itemStack.getCount() - upgradesToInstall));
+                            }
+                        }
+                    }
+
+                    int variablesNeeded = (int) partSettings.getBasicPartSettings().offsetVariables().stream().filter(itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get())).count();
+                    ContainerHelper.clearOrCountMatchingItems(player.getInventory(), itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get()), variablesNeeded, false);
+                } else {
+                    setMaxOffset(Math.max(getMaxOffset(), partSettings.getBasicPartSettings().maxOffset()));
+                }
+            }
+
+            int clampedUpdateInterval = Math.max(partSettings.getBasicPartSettings().updateInterval(), partType.getMinimumUpdateInterval(this));
+            partType.setUpdateInterval(this, clampedUpdateInterval);
+            NetworkHelpers.getNetwork(partTarget.getCenter()).ifPresent(network -> {
+                PartNetworkElement networkElement = new PartNetworkElement<>(partType, partTarget.getCenter());
+                network.setPriorityAndChannel(networkElement, partSettings.getBasicPartSettings().priority(), partSettings.getBasicPartSettings().channel());
+            });
+            partType.setTargetSideOverride(this, partSettings.getBasicPartSettings().targetSide().orElse(null));
+
+            if (supportsOffsets) {
+                partType.setTargetOffset(this, partTarget.getCenter(), partSettings.getBasicPartSettings().targetOffset());
+
+                SimpleInventory offsetVariablesInventory = offsetHandler.getOffsetVariablesInventory(this);
+                for (int i = 0; i < offsetVariablesInventory.getContainerSize(); i++) {
+                    ItemStack stackInSlot = offsetVariablesInventory.getItem(i).copy();
+                    if (player != null && !stackInSlot.isEmpty() && !player.addItem(stackInSlot)) {
+                        player.drop(stackInSlot, false);
+                    }
+                }
+                offsetVariablesInventory.clearContent();
+
+                IVariableFacadeHandlerRegistry facadeHandlerRegistry = IntegratedDynamics._instance.getRegistryManager().getRegistry(IVariableFacadeHandlerRegistry.class);
+                for (int i = 0; i < Math.min(offsetVariablesInventory.getContainerSize(), partSettings.getBasicPartSettings().offsetVariables().size()); i++) {
+                    ItemStack originalItemStack = partSettings.getBasicPartSettings().offsetVariables().get(i);
+                    if (originalItemStack.is(RegistryEntries.ITEM_VARIABLE.get())) {
+                        ItemStack copiedItemStack = facadeHandlerRegistry.copy(true, originalItemStack);
+                        offsetVariablesInventory.setItem(i, copiedItemStack);
+                    }
+                }
+                saveInventoryNamed("offsetVariablesInventory", offsetVariablesInventory);
+                partType.onOffsetVariablesChanged(partTarget, this);
+            }
+        }
+
+        if (partType.getContainerProvider(null).isPresent()) {
+            boolean shouldPostNetworkUpdate = !aspectProperties.isEmpty() || !partSettings.getBasicPartSettings().aspectProperties().isEmpty();
+            for (IAspect aspect : ImmutableList.copyOf(aspectProperties.keySet())) {
+                if (aspect.hasProperties() && aspect.getDefaultProperties() != null) {
+                    aspect.setProperties(partType, partTarget, this, aspect.getDefaultProperties().clone());
+                }
+            }
+            Level level = partTarget.getCenter().getPos().getLevel(true);
+            for (Map.Entry<IAspect, CompoundTag> entry : partSettings.getBasicPartSettings().aspectProperties().entrySet()) {
+                if (entry.getKey().hasProperties()) {
+                    AspectProperties loadedAspectProperties = new AspectProperties();
+                    loadedAspectProperties.fromNBT(ValueDeseralizationContext.of(level), entry.getValue());
+                    entry.getKey().setProperties(partType, partTarget, this, loadedAspectProperties);
+                }
+            }
+            if (shouldPostNetworkUpdate) {
+                NetworkHelpers.getNetwork(partTarget.getCenter()).ifPresent(network -> network.getEventBus().post(new VariableContentsUpdatedEvent(network)));
+            }
+        }
+    }
+
     /**
      * Gathers the capabilities of this part state.
      * Don't call this unless you know what you're doing!
@@ -320,6 +467,12 @@ public abstract class PartStateBase<P extends IPartType> implements IPartState<P
 
     @Override
     public <T> Optional<T> getCapability(P partType, PartCapability<T> capability, INetwork network, IPartNetwork partNetwork, PartTarget target) {
+        if (capability == Capabilities.SettingsCopyable.PART) {
+            if (canCopyPasteSettings(partType, target)) {
+                return (Optional<T>) Optional.of(new PartSettingsCopyable(partType, target));
+            }
+            return Optional.empty();
+        }
         Optional<Object> o = volatileCapabilities.get(capability);
         if(o != null && o.isPresent()) {
             return (Optional<T>) o;
@@ -376,5 +529,37 @@ public abstract class PartStateBase<P extends IPartType> implements IPartState<P
     public void setMaxOffset(int maxOffset) {
         this.maxOffset = maxOffset;
         markDirty();
+    }
+
+    protected class PartSettingsCopyable implements ISettingsCopyable {
+        private final P partType;
+        private final PartTarget partTarget;
+
+        public PartSettingsCopyable(P partType, PartTarget partTarget) {
+            this.partType = partType;
+            this.partTarget = partTarget;
+        }
+
+        @Override
+        public IBlockSettings copySettings() {
+            return PartStateBase.this.copySettings(partType, partTarget);
+        }
+
+        @Override
+        public Optional<Component> canPasteSettings(IBlockSettings blockSettings, @Nullable Player player) {
+            if (blockSettings instanceof BlockSettingsPart BlockSettingsPart) {
+                return PartStateBase.this.canPasteSettings(partType, BlockSettingsPart, partTarget, player);
+            }
+            return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.invalid_target"));
+        }
+
+        @Override
+        public void pasteSettings(IBlockSettings blockSettings, @Nullable Player player) {
+            if (blockSettings instanceof BlockSettingsPart blockSettingsPart &&
+                PartStateBase.this.canPasteSettings(partType, blockSettingsPart, partTarget, player).isEmpty() &&
+                !this.partTarget.getCenter().getPos().getLevel(true).isClientSide()) {
+                PartStateBase.this.pasteSettings(partType, blockSettingsPart, partTarget, player);
+            }
+        }
     }
 }

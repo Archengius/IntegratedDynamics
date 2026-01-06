@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import org.cyclops.cyclopscore.helper.CollectionHelpers;
 import org.cyclops.cyclopscore.persist.nbt.NBTClassType;
 import org.cyclops.integrateddynamics.api.evaluate.variable.ValueDeseralizationContext;
@@ -15,8 +16,10 @@ import org.cyclops.integrateddynamics.api.part.aspect.IAspect;
 import org.cyclops.integrateddynamics.api.part.aspect.IAspectWrite;
 import org.cyclops.integrateddynamics.api.part.write.IPartStateWriter;
 import org.cyclops.integrateddynamics.api.part.write.IPartTypeWriter;
+import org.cyclops.integrateddynamics.blocksettings.BlockSettingsPart;
 import org.cyclops.integrateddynamics.core.part.PartStateActiveVariableBase;
 import org.cyclops.integrateddynamics.part.aspect.Aspects;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -100,6 +103,14 @@ public class PartStateWriterBase<P extends IPartTypeWriter>
         if(activeAspect != null) {
             addError(activeAspect, null);
         }
+    }
+
+    @Override
+    protected void pasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
+        super.pasteSettings(partType, partSettings, partTarget, player);
+
+        // Make sure to update the part activation state when we change the active aspect by pasting settings
+        partType.updateActivation(partTarget, this, player);
     }
 
     @Override

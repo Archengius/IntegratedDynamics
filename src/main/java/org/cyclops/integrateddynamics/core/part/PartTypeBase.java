@@ -35,6 +35,7 @@ import org.cyclops.integrateddynamics.core.helper.PartHelpers;
 import org.cyclops.integrateddynamics.core.item.ItemPart;
 import org.cyclops.integrateddynamics.core.network.PartNetworkElement;
 import org.cyclops.integrateddynamics.item.ItemEnhancement;
+import org.cyclops.integrateddynamics.item.ItemSettingsCopier;
 import org.cyclops.integrateddynamics.item.ItemWrench;
 
 import java.util.*;
@@ -137,6 +138,15 @@ public abstract class PartTypeBase<P extends IPartType<P, S>, S extends IPartSta
     @Override
     public InteractionResult onPartActivated(S partState, BlockPos pos, Level world, Player player, InteractionHand hand,
                                             ItemStack heldItem, BlockHitResult hit) {
+        // Copy/paste part settings
+        PartPos partPos = PartPos.of(world, pos, hit.getDirection());
+        if (heldItem.getItem() instanceof ItemSettingsCopier itemSettingsCopier) {
+            InteractionResult result = itemSettingsCopier.copyPastePartSettings(this, partState, heldItem, player, hand, partPos);
+            if (result.consumesAction()) {
+                return result;
+            }
+        }
+
         // Drop through if the player is sneaking
         if(player.isSecondaryUseActive()) {
             return InteractionResult.PASS;
@@ -151,7 +161,6 @@ public abstract class PartTypeBase<P extends IPartType<P, S>, S extends IPartSta
         }
 
         // Set offset and side
-        PartPos partPos = PartPos.of(world, pos, hit.getDirection());
         if (heldItem.getItem() instanceof ItemWrench itemWrench) {
             InteractionResult result = itemWrench.performPartAction(hit, this, partState, heldItem, player, hand, partPos);
             if (result.consumesAction()) {

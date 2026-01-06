@@ -1,6 +1,7 @@
 package org.cyclops.integrateddynamics.api.item;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -68,6 +69,15 @@ public interface IVariableFacade {
      * @return The output type of this variable facade.
      */
     public IValueType getOutputType();
+
+    /**
+     * Replaces references to the variables with the IDs in the provided lookup with the new variable IDs
+     * Replacement is shallow, e.g. only variables directly referenced by this facade are to be replaced, and is also partial
+     * any variable references not in the lookup should be left as they are
+     *
+     * @param variableIdLookup lookup of old variable IDs to new variable IDs
+     */
+    public void replaceVariableReferences(Int2IntMap variableIdLookup);
 
     /**
      * Add information about this variable facade to the list.

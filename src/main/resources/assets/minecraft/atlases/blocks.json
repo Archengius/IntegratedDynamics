@@ -17,6 +17,7 @@
   { "type": "minecraft:single", "resource": "integrateddynamics:item/proto_chorus" },
   { "type": "minecraft:single", "resource": "integrateddynamics:item/variable_transformer_output" },
   { "type": "minecraft:single", "resource": "integrateddynamics:item/crystalized_menril_chunk" },
+  { "type": "minecraft:single", "resource": "integrateddynamics:item/settings_copier" },
   { "type": "minecraft:single", "resource": "integrateddynamics:valuetype/boolean" },
   { "type": "minecraft:single", "resource": "integrateddynamics:valuetype/integer" },
   { "type": "minecraft:single", "resource": "integrateddynamics:valuetype/number" },

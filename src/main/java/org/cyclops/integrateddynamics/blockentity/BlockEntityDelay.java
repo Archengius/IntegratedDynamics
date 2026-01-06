@@ -34,6 +34,8 @@ import org.cyclops.integrateddynamics.api.item.IVariableFacadeHandlerRegistry;
 import org.cyclops.integrateddynamics.api.network.INetworkElement;
 import org.cyclops.integrateddynamics.api.network.INetworkElementProvider;
 import org.cyclops.integrateddynamics.api.network.IPartNetwork;
+import org.cyclops.integrateddynamics.core.blocksettings.BlockSettingsActiveVariableBase;
+import org.cyclops.integrateddynamics.blocksettings.BlockSettingsDelay;
 import org.cyclops.integrateddynamics.capability.networkelementprovider.NetworkElementProviderSingleton;
 import org.cyclops.integrateddynamics.core.blockentity.BlockEntityActiveVariableBase;
 import org.cyclops.integrateddynamics.core.evaluate.DelayVariableFacadeHandler;
@@ -197,6 +199,21 @@ public class BlockEntityDelay extends BlockEntityProxy implements MenuProvider {
             if (value != null) {
                 this.values.add(value);
             }
+        }
+    }
+
+    @Override
+    protected BlockSettingsActiveVariableBase copySettings() {
+        return new BlockSettingsDelay(getInventory().getItem(getSlotRead()).copy(), getCapacity(), getUpdateInterval());
+    }
+
+    @Override
+    protected void pasteSettings(BlockSettingsActiveVariableBase blockSettings, @Nullable Player player) {
+        super.pasteSettings(blockSettings, player);
+
+        if (blockSettings instanceof BlockSettingsDelay blockSettingsDelay) {
+            setCapacity(blockSettingsDelay.getCapacity());
+            setUpdateInterval(blockSettingsDelay.getUpdateInterval());
         }
     }
 

@@ -1,5 +1,6 @@
 package org.cyclops.integrateddynamics.api.part;
 
+import com.mojang.serialization.Codec;
 import net.minecraft.resources.ResourceLocation;
 import org.cyclops.cyclopscore.init.IRegistry;
 
@@ -32,4 +33,6 @@ public interface IPartTypeRegistry extends IRegistry {
      */
     public IPartType getPartType(ResourceLocation partName);
 
+    /** @return the codec that can be used to persist the part type objects */
+    public Codec<IPartType> codec();
 }

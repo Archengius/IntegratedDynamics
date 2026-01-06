@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
@@ -196,6 +198,13 @@ public final class AspectRegistry implements IAspectRegistry {
     @Override
     public boolean isInstance(IVariableFacade variableFacade) {
         return variableFacade instanceof IAspectVariableFacade;
+    }
+
+    @Override
+    public Codec<IAspect> codec() {
+        return ResourceLocation.CODEC.comapFlatMap(
+                identifier -> Optional.ofNullable(getAspect(identifier)).map(DataResult::success).orElse(DataResult.error(() -> "Unknown aspect ID: " + identifier)),
+                IAspect::getUniqueName);
     }
 
     @Override
