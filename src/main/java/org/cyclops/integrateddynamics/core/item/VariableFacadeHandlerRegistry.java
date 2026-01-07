@@ -170,12 +170,16 @@ public class VariableFacadeHandlerRegistry implements IVariableFacadeHandlerRegi
     }
 
     @Override
-    public <F extends IVariableFacade> ItemStack copy(boolean generateId, ItemStack itemStack) {
+    public ItemStack copy(boolean generateId, ItemStack itemStack) {
         ItemStack copy = itemStack.copy();
-        int newId = generateId ? VariableFacadeBase.generateId() : -1;
-        CompoundTag tagCopy = itemStack.get(RegistryEntries.DATACOMPONENT_VARIABLE_FACADE).copy();
-        tagCopy.putInt("_id", newId);
-        copy.set(RegistryEntries.DATACOMPONENT_VARIABLE_FACADE, tagCopy);
+        // Tag can be null in case of invalid/empty variable card being copied
+        CompoundTag originalFacadeTag = itemStack.get(RegistryEntries.DATACOMPONENT_VARIABLE_FACADE);
+        if (originalFacadeTag != null) {
+            int newId = generateId ? VariableFacadeBase.generateId() : -1;
+            CompoundTag tagCopy = originalFacadeTag.copy();
+            tagCopy.putInt("_id", newId);
+            copy.set(RegistryEntries.DATACOMPONENT_VARIABLE_FACADE, tagCopy);
+        }
         return copy;
     }
 
