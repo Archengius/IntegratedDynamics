@@ -45,6 +45,7 @@ import org.cyclops.integrateddynamics.part.aspect.Aspects;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * A default implementation of the {@link IPartState}.
@@ -342,6 +343,11 @@ public abstract class PartStateBase<P extends IPartType> implements IPartState<P
         return new BlockSettingsPart(partType, copyBasicSettings(partTarget));
     }
 
+    /** Allows overriding how many variable cards are needed to paste the given settings */
+    protected int getNumVariablesNeededToPasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
+        return (int) partSettings.getBasicPartSettings().offsetVariables().stream().filter(itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get())).count();
+    }
+
     /** Returns true if this part supports the given settings class */
     protected Optional<Component> canPasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
         if (partSettings.getPartType() != partType) {
@@ -363,8 +369,9 @@ public abstract class PartStateBase<P extends IPartType> implements IPartState<P
                 return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.no_offset_enhancements"));
             }
 
-            int variablesNeeded = (int) partSettings.getBasicPartSettings().offsetVariables().stream().filter(itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get())).count();
-            int variablesAvailable = player.getInventory().countItem(RegistryEntries.ITEM_VARIABLE.get());
+            int variablesNeeded = getNumVariablesNeededToPasteSettings(partType, partSettings, partTarget, player);
+            Predicate<ItemStack> blankCardPredicate = RegistryEntries.ITEM_VARIABLE.get().blankVariablePredicate(partTarget.getCenter().getPos().getLevel(true));
+            int variablesAvailable = ContainerHelper.clearOrCountMatchingItems(player.getInventory(), blankCardPredicate, 0, true);
             if (variablesAvailable < variablesNeeded) {
                 return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.no_variable_cards"));
             }
@@ -395,8 +402,9 @@ public abstract class PartStateBase<P extends IPartType> implements IPartState<P
                         }
                     }
 
-                    int variablesNeeded = (int) partSettings.getBasicPartSettings().offsetVariables().stream().filter(itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get())).count();
-                    ContainerHelper.clearOrCountMatchingItems(player.getInventory(), itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get()), variablesNeeded, false);
+                    int variablesNeeded = getNumVariablesNeededToPasteSettings(partType, partSettings, partTarget, player);
+                    Predicate<ItemStack> blankCardPredicate = RegistryEntries.ITEM_VARIABLE.get().blankVariablePredicate(partTarget.getCenter().getPos().getLevel(true));
+                    ContainerHelper.clearOrCountMatchingItems(player.getInventory(), blankCardPredicate, variablesNeeded, false);
                 } else {
                     setMaxOffset(Math.max(getMaxOffset(), partSettings.getBasicPartSettings().maxOffset()));
                 }

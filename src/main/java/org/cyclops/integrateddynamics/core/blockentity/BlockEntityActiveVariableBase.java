@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -128,9 +129,10 @@ public abstract class BlockEntityActiveVariableBase<E> extends BlockEntityCableC
         }
 
         if (player != null && !blockSettings.getVariable().isEmpty() && !player.hasInfiniteMaterials()) {
-            int variableCardsAvailable = player.getInventory().countItem(RegistryEntries.ITEM_VARIABLE.get());
-            int variableCardsNeeded = 1;
-            if (variableCardsAvailable < variableCardsNeeded) {
+            Predicate<ItemStack> blankCardPredicate = RegistryEntries.ITEM_VARIABLE.get().blankVariablePredicate(getLevel());
+            int variablesAvailable = ContainerHelper.clearOrCountMatchingItems(player.getInventory(), blankCardPredicate, 0, true);
+            int variablesNeeded = 1;
+            if (variablesAvailable < variablesNeeded) {
                 return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.no_variable_cards"));
             }
         }
@@ -141,8 +143,9 @@ public abstract class BlockEntityActiveVariableBase<E> extends BlockEntityCableC
         ItemStack copiedVariableItemStack = blockSettings.getVariable();
 
         if (player != null && !copiedVariableItemStack.isEmpty() && !player.hasInfiniteMaterials()) {
-            int variableCardsNeeded = 1;
-            ContainerHelper.clearOrCountMatchingItems(player.getInventory(), itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get()), variableCardsNeeded, false);
+            int variablesNeeded = 1;
+            Predicate<ItemStack> blankCardPredicate = RegistryEntries.ITEM_VARIABLE.get().blankVariablePredicate(getLevel());
+            ContainerHelper.clearOrCountMatchingItems(player.getInventory(), blankCardPredicate, variablesNeeded, false);
         }
 
         // Remove our currently inserted variable card

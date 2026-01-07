@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -151,7 +152,8 @@ public class BlockEntityVariablestore extends BlockEntityCableConnectableInvento
 
         if (player != null && !player.hasInfiniteMaterials()) {
             int variablesNeeded = (int) blockSettings.getVariableSlots().stream().filter(itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get())).count();
-            int variablesAvailable = player.getInventory().countItem(RegistryEntries.ITEM_VARIABLE.get());
+            Predicate<ItemStack> blankCardPredicate = RegistryEntries.ITEM_VARIABLE.get().blankVariablePredicate(getLevel());
+            int variablesAvailable = ContainerHelper.clearOrCountMatchingItems(player.getInventory(), blankCardPredicate, 0, true);
 
             if (variablesAvailable < variablesNeeded) {
                 return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.no_variable_cards"));
@@ -164,7 +166,8 @@ public class BlockEntityVariablestore extends BlockEntityCableConnectableInvento
         // Consume cards needed to fill the slots
         if (player != null && !player.hasInfiniteMaterials()) {
             int variablesNeeded = (int) blockSettings.getVariableSlots().stream().filter(itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get())).count();
-            ContainerHelper.clearOrCountMatchingItems(player.getInventory(), itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get()), variablesNeeded, false);
+            Predicate<ItemStack> blankCardPredicate = RegistryEntries.ITEM_VARIABLE.get().blankVariablePredicate(getLevel());
+            ContainerHelper.clearOrCountMatchingItems(player.getInventory(), blankCardPredicate, variablesNeeded, false);
         }
 
         // Clear the contents of our current inventory (and drop existing cards in player inventory

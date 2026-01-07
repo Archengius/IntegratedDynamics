@@ -4,9 +4,7 @@ import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -15,7 +13,6 @@ import org.cyclops.cyclopscore.inventory.SimpleInventory;
 import org.cyclops.cyclopscore.persist.nbt.NBTClassType;
 import org.cyclops.integrateddynamics.Capabilities;
 import org.cyclops.integrateddynamics.IntegratedDynamics;
-import org.cyclops.integrateddynamics.RegistryEntries;
 import org.cyclops.integrateddynamics.api.block.IVariableContainer;
 import org.cyclops.integrateddynamics.api.evaluate.EvaluationException;
 import org.cyclops.integrateddynamics.api.evaluate.IValueInterface;
@@ -199,22 +196,15 @@ public abstract class PartStateActiveVariableBase<P extends IPartType> extends P
     }
 
     @Override
-    protected Optional<Component> canPasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
-        Optional<Component> superErrorMessage = super.canPasteSettings(partType, partSettings, partTarget, player);
-        if (superErrorMessage.isPresent()) {
-            return superErrorMessage;
-        }
+    protected int getNumVariablesNeededToPasteSettings(P partType, BlockSettingsPart partSettings, PartTarget partTarget, @Nullable Player player) {
+        int totalVariablesNeeded = super.getNumVariablesNeededToPasteSettings(partType, partSettings, partTarget, player);
 
         if (partSettings instanceof BlockSettingsActiveVariablePart activeVariablePart) {
-            if (player != null && !player.hasInfiniteMaterials() && !activeVariablePart.getActiveVariableSettings().activeVariable().isEmpty()) {
-                int variablesNeeded = 1;
-                int variablesAvailable = player.getInventory().countItem(RegistryEntries.ITEM_VARIABLE.get());
-                if (variablesAvailable < variablesNeeded) {
-                    return Optional.of(Component.translatable("gui.integrateddynamics.block_settings.error.no_variable_cards"));
-                }
+            if (!activeVariablePart.getActiveVariableSettings().activeVariable().isEmpty()) {
+                totalVariablesNeeded += 1;
             }
         }
-        return Optional.empty();
+        return totalVariablesNeeded;
     }
 
     @Override
@@ -222,11 +212,6 @@ public abstract class PartStateActiveVariableBase<P extends IPartType> extends P
         super.pasteSettings(partType, partSettings, partTarget, player);
 
         if (partSettings instanceof BlockSettingsActiveVariablePart activeVariablePart) {
-            if (player != null && !player.hasInfiniteMaterials() && !activeVariablePart.getActiveVariableSettings().activeVariable().isEmpty()) {
-                int variablesNeeded = 1;
-                ContainerHelper.clearOrCountMatchingItems(player.getInventory(), itemStack -> itemStack.is(RegistryEntries.ITEM_VARIABLE.get()), variablesNeeded, false);
-            }
-
             for (int i = 0; i < getInventory().getContainerSize(); i++) {
                 ItemStack stackInSlot = getInventory().getItem(i).copy();
                 if (player != null && !stackInSlot.isEmpty() && !player.addItem(stackInSlot)) {
