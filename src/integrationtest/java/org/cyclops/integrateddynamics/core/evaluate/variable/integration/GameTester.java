@@ -1,11 +1,11 @@
 package org.cyclops.integrateddynamics.core.evaluate.variable.integration;
 
+import com.google.common.collect.Lists;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestGenerator;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.TestFunction;
 import net.neoforged.neoforge.gametest.GameTestHolder;
-import org.apache.commons.compress.utils.Lists;
 import org.cyclops.integrateddynamics.Reference;
 import org.cyclops.integrateddynamics.command.CommandTest;
 import org.cyclops.integrateddynamics.core.test.IntegrationBefore;

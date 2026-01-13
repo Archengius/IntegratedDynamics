@@ -1,5 +1,6 @@
 package org.cyclops.integrateddynamics.blockentity;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -17,7 +18,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import org.apache.commons.compress.utils.Lists;
 import org.cyclops.cyclopscore.datastructure.DimPos;
 import org.cyclops.cyclopscore.helper.MinecraftHelpers;
 import org.cyclops.cyclopscore.inventory.SimpleInventory;
